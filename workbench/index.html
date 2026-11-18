@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>海报工作台</title>
+<style>
+  :root{
+    --bg:#0b0d10; --panel:#12161c; --line:#232b36;
+    --txt:#dfe9f2; --dim:#8b9cad; --acc:#ff7a45;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    font-size:13px; height:100vh; display:flex; overflow:hidden;
+  }
+
+  /* ---------- 左栏 ---------- */
+  .panel{
+    width:352px; flex:0 0 352px; height:100vh; overflow-y:auto;
+    background:var(--panel); border-right:1px solid var(--line);
+    padding:18px 18px 40px;
+  }
+  .panel h1{font-size:14px; font-weight:600; letter-spacing:.5px; margin-bottom:2px}
+  .panel .sub{color:var(--dim); font-size:11px; margin-bottom:18px}
+  .grp{margin-bottom:20px}
+  .grp > label{
+    display:block; color:var(--dim); font-size:11px; letter-spacing:1px;
+    margin-bottom:7px; text-transform:uppercase;
+  }
+  .layouts{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+  .layouts button{
+    padding:9px 6px; background:#1a2029; border:1px solid var(--line);
+    color:var(--txt); border-radius:5px; cursor:pointer; font-size:12px;
+    font-family:inherit; transition:.12s;
+  }
+  .layouts button:hover{border-color:#3a4757}
+  .layouts button.on{background:#233043; border-color:var(--acc); color:#fff}
+  .layouts button small{display:block; color:var(--dim); font-size:10px; margin-top:2px}
+  .layouts button.on small{color:#c8b3a8}
+
+  textarea, input[type=text], select{
+    width:100%; background:#0e1319; border:1px solid var(--line);
+    color:var(--txt); border-radius:5px; padding:8px 9px; font-size:12.5px;
+    font-family:inherit; line-height:1.7; resize:vertical; outline:none;
+  }
+  textarea:focus, input[type=text]:focus, select:focus{border-color:#3a4757}
+  textarea{min-height:96px}
+
+  .row{display:flex; gap:8px; align-items:center}
+  .row > *{min-width:0}
+  .slider{display:flex; align-items:center; gap:9px; margin-bottom:9px}
+  .slider label{flex:0 0 62px; color:var(--dim); font-size:11.5px}
+  .slider input[type=range]{flex:1; accent-color:var(--acc)}
+  .slider var{flex:0 0 42px; text-align:right; color:var(--txt); font-style:normal; font-size:11.5px; font-variant-numeric:tabular-nums}
+
+  .swatches{display:flex; gap:8px; align-items:center}
+  .swatches input[type=color]{
+    width:34px; height:30px; padding:0; border:1px solid var(--line);
+    border-radius:5px; background:none; cursor:pointer;
+  }
+  .swatches span{color:var(--dim); font-size:11px}
+
+  .hint{color:#6d7f90; font-size:11px; line-height:1.6; margin-top:6px}
+
+  /* ---------- 右栏 ---------- */
+  .stage{
+    flex:1; height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:16px; position:relative;
+  }
+  .frame{
+    width:343px; height:614px; border-radius:3px; overflow:hidden;
+    box-shadow:0 18px 60px rgba(0,0,0,.65);
+  }
+  .frame iframe{
+    width:404px; height:722px; border:0;
+    transform:scale(0.85); transform-origin:top left;
+  }
+  .actions{display:flex; gap:10px; align-items:center}
+  .btn{
+    padding:10px 22px; border-radius:6px; border:1px solid var(--line);
+    background:#1a2029; color:var(--txt); cursor:pointer; font-size:13px;
+    font-family:inherit; transition:.12s;
+  }
+  .btn:hover{border-color:#3a4757}
+  .btn.primary{background:var(--acc); border-color:var(--acc); color:#20100a; font-weight:600}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn:disabled{opacity:.5; cursor:default}
+  .status{color:var(--dim); font-size:12px; min-height:16px}
+  .status.err{color:#ff6b6b}
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>海报工作台</h1>
+  <div class="sub">改文字 · 换版式 · 一键出 @2x</div>
+
+  <div class="grp">
+    <label>版式</label>
+    <div class="layouts" id="layouts"></div>
+  </div>
+
+  <div class="grp">
+    <label>中文文案（一行一句）</label>
+    <textarea id="cn" spellcheck="false"></textarea>
+  </div>
+
+  <div class="grp">
+    <label id="enLabel">英文文案（可留空）</label>
+    <textarea id="en" spellcheck="false"></textarea>
+  </div>
+
+  <div class="grp">
+    <label>刊头 / 落款</label>
+    <div class="row">
+      <input type="text" id="mast" placeholder="刊头，如 OPEN SEA">
+      <input type="text" id="foot" placeholder="落款，如 ·DOU SHI HAO FENG LANG·">
+    </div>
+  </div>
+
+  <div class="grp">
+    <label>排版</label>
+    <div id="sld-type"></div>
+    <div class="hint" id="fsHint"></div>
+  </div>
+
+  <div class="grp">
+    <label>颜色</label>
+    <div class="swatches">
+      <input type="color" id="ink" title="文字色">
+      <span>文字</span>
+      <input type="color" id="accent" title="撞色">
+      <span>撞色</span>
+    </div>
+  </div>
+
+  <div class="grp">
+    <label>底图</label>
+    <div class="row" style="margin-bottom:7px">
+      <input type="text" id="bgdir" placeholder="文件夹路径，如 assets 或 ~/Pictures" spellcheck="false">
+      <button class="btn" id="bgdirGo" style="padding:8px 12px;flex:0 0 auto">载入</button>
+    </div>
+    <select id="bgimg"></select>
+    <div id="sld-bg" style="margin-top:9px"></div>
+  </div>
+
+  <div class="grp">
+    <label>调色</label>
+    <div id="sld-grade"></div>
+  </div>
+
+  <div class="grp">
+    <button class="btn" id="reset" style="width:100%">恢复默认</button>
+    <div class="hint">配置存在浏览器本地，刷新不丢。</div>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="frame"><iframe id="preview" title="预览"></iframe></div>
+  <div class="actions">
+    <button class="btn primary" id="export">导出 @2x PNG</button>
+    <button class="btn" id="export1x">导出 1x</button>
+  </div>
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+/* ============================================================
+   常量
+   ============================================================ */
+const W = 878, H = 1569;
+
+const LAYOUTS = [
+  { id:'vary',    name:'居中递变', sub:'字号逐行变化' },
+  { id:'vertical',name:'竖排右起', sub:'一字一列' },
+  { id:'hero',    name:'巨句',     sub:'首句压满' },
+  { id:'uniform', name:'居中等大', sub:'统一字号' },
+  { id:'bottom',  name:'沉底等大', sub:'画面优先' },
+  { id:'lyric',   name:'歌词居中', sub:'整块居中·无英文' },
+];
+
+const BG_IMAGES = [
+  'grass-midday.png','autumn-gold.png','lavender-dense.png','tea-green.png',
+  'sakura-hill.png','snow-dusk.png','blackgold-skyline.png','wheat-gold.png',
+  'sea-glitter.png','sea-dusk.png',
+];
+
+/* ============================================================
+   滑杆参数表（单一数据源）
+   默认值、面板 HTML、回填、事件绑定全部由这张表生成。
+   加一个滑杆 = 这里加一行 + buildHTML 里读 cfg.xxx，不用再改 4 个地方。
+   grp 对应面板分组：type=排版 / bg=底图 / grade=调色
+   ============================================================ */
+const SLIDERS = [
+  { grp:'type',  k:'fsScale', label:'字号倍率', min:0.55, max:1.6,  step:0.01, def:1.00, unit:'×' },
+  { grp:'type',  k:'ls',      label:'字距',     min:-0.05,max:0.40, step:0.01, def:0.05, unit:'em' },
+  { grp:'bg',    k:'angle',   label:'拉丝角度', min:-80,  max:80,   step:1,    def:-9,   unit:'°' },
+  { grp:'bg',    k:'blur',    label:'拉丝长度', min:10,   max:110,  step:1,    def:52,   unit:'' },
+  { grp:'bg',    k:'presat',  label:'预饱和',   min:0.6,  max:2,    step:0.02, def:1.30, unit:'' },
+  { grp:'bg',    k:'crop',    label:'取景上下', min:-700, max:700,  step:10,   def:-370, unit:'' },
+  { grp:'grade', k:'sat',     label:'饱和',     min:0.5,  max:1.8,  step:0.01, def:1.20, unit:'' },
+  { grp:'grade', k:'con',     label:'对比',     min:0.7,  max:1.8,  step:0.01, def:1.18, unit:'' },
+  { grp:'grade', k:'bri',     label:'明度',     min:0.6,  max:1.5,  step:0.01, def:0.90, unit:'' },
+];
+
+const DEFAULTS = Object.assign({
+  layout:'bottom',
+  cn:'有人等潮来\n有人追光去\n有人把夏天折成纸船，\n放进退潮的水里。\n都是好风浪。',
+  en:'There are people\nwaiting for the tide',
+  mast:'OPEN SEA',
+  foot:'·DOU SHI HAO FENG LANG·',
+  ink:'#f2fcfd',
+  accent:'#ff7a45',
+  bgdir:'',            // 底图文件夹（服务端回传的绝对路径）
+  bgimg:'sea-glitter.png',
+}, Object.fromEntries(SLIDERS.map(p => [p.k, p.def])));   // 滑杆默认值统一来自 SLIDERS
+
+/* ============================================================
+   工具
+   ============================================================ */
+/** 上一次渲染的度量：base=基准字号，maxW=最宽一行占用的像素宽度，W=画幅宽 */
+let METRICS = { base: 0, maxW: 0 };
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/** 一行文字的宽度（以 em 为单位）：中文按 1em/字，字距按 em 追加 */
+function emWidth(text, ls){
+  const n = [...text].length;
+  return n + Math.max(0, n - 1) * ls;
+}
+
+/**
+ * 计算统一字号。
+ * 同时受"最宽一行塞得下"和"总行数塞得下"两个约束，取较小值。
+ * maxW / availH 是可用区域（设计坐标，878×1569）。
+ */
+function fitUniform(lines, maxW, availH, ls, lh){
+  const maxEm = Math.max(1, ...lines.map(t => emWidth(t, ls)));
+  const byW = maxW / maxEm;
+  const byH = availH / (lines.length * lh);
+  return Math.max(26, Math.min(byW, byH, 132));
+}
+
+/* ============================================================
+   渲染器：把配置拼成一整份独立 HTML
+   ============================================================ */
+function buildHTML(cfg, opts){
+  opts = opts || {};
+  const FS = Number(cfg.fsScale) || 1;   // 字号倍率
+  METRICS = { base: 0, maxW: 0 };
+  /** 记录一行文字实际占多宽，用来判断有没有冲出画幅 */
+  const track = (text, ls, size) => {
+    const w = emWidth(text, ls) * size;
+    if (w > METRICS.maxW) METRICS.maxW = w;
+    return size;
+  };
+  const cn = cfg.cn.split('\n').map(s => s.trim()).filter(Boolean);
+  const en = cfg.en.split('\n').map(s => s.trim()).filter(Boolean);
+  const LS = Number(cfg.ls);        // 基准字距（em），由面板「字距」控制
+  if (!isFinite(LS)) throw new Error('字距参数非法：' + cfg.ls);
+
+  /* ---------- 背景 ---------- */
+  // 预览用 /bg 走 HTTP，导出用 file:// 直读磁盘——同一张图两条路都能拿到
+  const bgHref = cfg.bgdir
+    ? (opts.base
+        ? '/bg?path=' + encodeURIComponent(cfg.bgdir + '/' + cfg.bgimg)
+        : 'file://' + (cfg.bgdir + '/' + cfg.bgimg).split('/').map(encodeURIComponent).join('/'))
+    : 'assets/' + cfg.bgimg;
+
+  const boxW = 1900, boxH = 2900;
+  const ix = 439 - boxW / 2;
+  const iy = 784 - boxH / 2 + Number(cfg.crop);
+  const horiz = Math.abs(Number(cfg.angle)) < 45;
+  const std = horiz
+    ? '"' + cfg.blur + ' 4"'
+    : '"4 ' + cfg.blur + '"';
+
+  const bgSVG = `
+  <svg class="bg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <defs>
+      <filter id="smear" x="-45%" y="-65%" width="190%" height="230%" color-interpolation-filters="sRGB">
+        <feColorMatrix type="saturate" values="${cfg.presat}" result="sat"/>
+        <feGaussianBlur in="sat" stdDeviation=${std}/>
+      </filter>
+      <linearGradient id="topshade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0a1220" stop-opacity=".16"/>
+        <stop offset=".30" stop-color="#0a1220" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <rect width="${W}" height="${H}" fill="#1b2733"/>
+    <g filter="url(#smear)" transform="rotate(${cfg.angle} 439 784)">
+      <image href="${bgHref}" x="${ix}" y="${iy}" width="${boxW}" height="${boxH}"
+             preserveAspectRatio="xMidYMid slice"/>
+    </g>
+    <rect width="${W}" height="620" fill="url(#topshade)"/>
+  </svg>`;
+
+  /* ---------- 文字层 ---------- */
+  let stage = '';
+
+  if (cfg.layout === 'vertical') {
+    // 竖排：一句一列，从右往左
+    const LSv = LS + 0.05;              // 竖排比横排松一点，和原视觉一致
+    const right0 = 118;                 // 最右一列的右边缘位置
+    const maxLen = Math.max(1, ...cn.map(t => [...t].length));
+    // 一列的总高 = 字数 × 字号 + 字间空隙，字距变了高度也得跟着变，否则会冲出画幅
+    const colFactor = 1 + LSv * (maxLen - 1) / maxLen;
+    const fs = Math.max(30, Math.min((H - 620) / (maxLen * colFactor), 118)) * FS;
+    const colGap = fs * 1.42;
+    METRICS.base = fs;
+    // 竖排的约束在横向：最左一列的左边缘不能跑出画幅
+    METRICS.maxW = right0 + (cn.length - 1) * colGap + fs;
+    const top0 = Math.max(300, (H - maxLen * fs * colFactor) / 2);
+    stage += cn.map((t, i) => `
+      <div class="cn" style="position:absolute; writing-mode:vertical-rl; text-orientation:upright;
+        right:${right0 + i * colGap}px; top:${top0}px; font-size:${fs}px; letter-spacing:${LSv}em;">${esc(t)}</div>`).join('');
+    if (en.length) {
+      // 英文也竖排：一列一句，放最左侧，避免压住中文字列
+      en.forEach((t, i) => {
+        stage += `
+      <div class="en" style="position:absolute; left:${24 + i * 52}px; top:${top0}px;
+        font-size:38px; letter-spacing:.05em; transform:rotate(90deg); transform-origin:0 0;">${esc(t)}</div>`;
+      });
+    }
+
+  } else if (cfg.layout === 'hero') {
+    // 巨句：首句压满宽度，其余缩小居中；整块垂直居中
+    const head = cn[0] || '';
+    const rest = cn.slice(1);
+    const LShead = LS - 0.03;           // 巨句首句收紧，避免压满时太散
+    const fs1 = Math.min((W - 120) / emWidth(head, LShead), 172) * FS;
+    const fs2 = Math.max(34, fs1 * 0.5);
+    METRICS.base = fs1;
+    track(head, LShead, fs1);
+    const lh1 = fs1 * 1.05;
+    const lh2 = fs2 * 1.28;
+    const gapRule = 46;        // 首句到细线
+    const gapAfter = 92;       // 细线到副句
+    const enBlock = en.length ? 30 + 46 * 1.2 : 0;
+
+    const totalH = lh1 + gapRule + gapAfter + rest.length * lh2 + enBlock;
+    let y = Math.max(120, (H - totalH) / 2);
+
+    stage += `
+      <div class="cn" style="position:absolute; left:0; right:0; text-align:center;
+        top:${y}px; font-size:${fs1}px; letter-spacing:${LShead}em;">${esc(head)}</div>`;
+    y += lh1 + gapRule;
+    stage += `<div style="position:absolute; left:60px; top:${y}px; width:${W - 120}px; height:1px;
+                    background:rgba(248,253,255,.46);"></div>`;
+    y += gapAfter;
+
+    rest.forEach(t => {
+      stage += `
+      <div class="cn" style="position:absolute; left:0; right:0; text-align:center;
+        top:${y}px; font-size:${fs2}px; letter-spacing:${LS}em;">${esc(t)}</div>`;
+      y += lh2;
+    });
+
+    if (en.length) {
+      stage += `
+      <div class="en" style="position:absolute; left:0; right:0; text-align:center;
+        top:${y + 30}px; font-size:46px; letter-spacing:.04em;">${esc(en.join(' '))}</div>`;
+    }
+
+  } else if (cfg.layout === 'uniform' || cfg.layout === 'bottom') {
+    // 等大：统一字号，水平居中
+    const isBottom = cfg.layout === 'bottom';
+    const availH = isBottom ? 730 : 1000;
+    const fs = fitUniform(cn, W - 140, availH, LS, 1.5) * FS;
+    METRICS.base = fs;
+    cn.forEach(t => track(t, LS, fs));
+    const lh = fs * 1.5;
+    const blockH = cn.length * lh;
+
+    let top;
+    let ruleY = 0;
+    if (isBottom) {
+      const bottom = 250;
+      top = H - bottom - blockH;
+      ruleY = top - 46;
+      stage += `<div style="position:absolute; left:60px; top:${ruleY}px; width:${W - 120}px;
+                             height:1px; background:rgba(248,253,255,.46);"></div>`;
+    } else {
+      top = (H - blockH) / 2;
+    }
+
+    stage += cn.map((t, i) => `
+      <div class="cn" style="position:absolute; left:0; right:0; text-align:center;
+        top:${top + i * lh}px; font-size:${fs}px; letter-spacing:${LS}em;">${esc(t)}</div>`).join('');
+
+    if (isBottom) {
+      stage += `
+      <div class="word" style="position:absolute; left:74px; bottom:112px;">${esc(cfg.mast)}</div>
+      <div class="footline" style="position:absolute; left:74px; bottom:52px;">${esc(cfg.foot)}</div>`;
+    } else {
+      stage += `
+      <div class="masthead">
+        <div class="rule l"></div><div class="dot" style="left:318px"></div>
+        <div class="word">${esc(cfg.mast)}</div>
+        <div class="dot" style="right:318px"></div><div class="rule r"></div>
+      </div>
+      <div class="footline" style="position:absolute; left:0; right:0; bottom:52px; text-align:center;">${esc(cfg.foot)}</div>`;
+    }
+
+  } else if (cfg.layout === 'lyric') {
+    // 歌词居中：整块水平+垂直居中，不排英文；署名跟在末行右下侧
+    // 留白按"墨迹"算而不是按行盒：末行只占一个字高，行盒里多出来的空白不该算进去
+    const fs = fitUniform(cn, W - 90, 1000, LS, 1.5) * FS;
+    METRICS.base = fs;
+    cn.forEach(t => track(t, LS, fs));
+    const lh = fs * 1.5;
+    const inkH = (cn.length - 1) * lh + fs;
+    const top = (H - inkH) / 2;
+
+    // 居中排版后文字常常落在画面亮部，光晕要比其它版式重一档才压得住
+    const HALO = 'text-shadow:0 0 20px rgba(4,16,30,.55),0 0 8px rgba(4,16,30,.45),' +
+                 '0 2px 14px rgba(3,18,34,.42);';
+    stage += cn.map((t, i) => `
+      <div class="cn" style="position:absolute; left:0; right:0; text-align:center;
+        top:${top + i * lh}px; font-size:${fs}px; letter-spacing:${LS}em;${HALO}">${esc(t)}</div>`).join('');
+
+    // 署名：右对齐到最长一行的右端，紧贴末行
+    let metaY = top + inkH + 34;
+    if (cfg.mast) {
+      stage += `<div class="word" style="position:absolute; left:auto; right:120px;
+        text-align:right; top:${metaY}px;${HALO}">${esc(cfg.mast)}</div>`;
+      metaY += 36;
+    }
+    if (cfg.foot) {
+      stage += `<div class="footline" style="position:absolute; left:auto; right:120px;
+        text-align:right; top:${metaY}px;${HALO}">${esc(cfg.foot)}</div>`;
+    }
+
+  } else {
+    // vary：字号逐行递变 + 居中
+    const scale = [1, 0.86, 0.94, 0.90, 0.96, 0.88];
+    const LS_OFF = [0.05, 0.07, -0.03, 0.01, -0.07];   // 相对基准字距的偏移
+    const totalScale = cn.reduce((a, _, i) => a + scale[i % scale.length], 0);
+    const maxLineEm = Math.max(1, ...cn.map(t => emWidth(t, LS + 0.07)));
+    const fs = Math.max(28, Math.min((W - 150) / maxLineEm, 1000 / (totalScale * 1.36), 132)) * FS;
+    METRICS.base = fs;
+    cn.forEach((t, i) => track(t, LS + 0.07, fs * scale[i % scale.length]));
+    const lh = fs * 1.36;
+    const blockH = totalScale * lh;
+    let y = (H - blockH) / 2;
+
+    if (en.length) {
+      const half = Math.ceil(en.length / 2);
+      en.slice(0, half).forEach((t, i) => {
+        stage += `<div class="en" style="position:absolute; left:0; right:0; text-align:center;
+          top:${240 + i * 56}px; font-size:48px; letter-spacing:.05em;">${esc(t)}</div>`;
+      });
+      en.slice(half).forEach((t, i) => {
+        stage += `<div class="en" style="position:absolute; left:0; right:0; text-align:center;
+          top:${H - 300 + i * 54}px; font-size:48px; letter-spacing:.05em;">${esc(t)}</div>`;
+      });
+    }
+
+    cn.forEach((t, i) => {
+      const s = fs * scale[i % scale.length];
+      const ls = LS + LS_OFF[i % 5];
+      stage += `<div class="cn" style="position:absolute; left:0; right:0; text-align:center;
+        top:${y}px; font-size:${s}px; letter-spacing:${ls}em;">${esc(t)}</div>`;
+      y += scale[i % scale.length] * lh;
+    });
+
+    stage += `
+      <div class="masthead">
+        <div class="rule l"></div><div class="dot" style="left:318px"></div>
+        <div class="word">${esc(cfg.mast)}</div>
+        <div class="dot" style="right:318px"></div><div class="rule r"></div>
+      </div>
+      <div class="footline" style="position:absolute; left:0; right:0; bottom:52px; text-align:center;">${esc(cfg.foot)}</div>`;
+  }
+
+  /* 竖排 / 巨句 没有走上面两个分支的刊头，统一补一个 */
+  if (!['vary','uniform','bottom','lyric'].includes(cfg.layout)) {
+    stage += `
+      <div class="masthead">
+        <div class="rule l"></div><div class="dot" style="left:318px"></div>
+        <div class="word">${esc(cfg.mast)}</div>
+        <div class="dot" style="right:318px"></div><div class="rule r"></div>
+      </div>`;
+    if (cfg.layout !== 'bottom') {
+      stage += `<div class="footline" style="position:absolute; left:0; right:0; bottom:52px; text-align:center;">${esc(cfg.foot)}</div>`;
+    }
+  }
+
+  /* ---------- 完整 HTML ---------- */
+  const base = opts.base ? `<base href="${opts.base}">` : '';
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">${base}
+<style>
+  @font-face{font-family:"HandCN"; src:url("fonts/xi-mail.ttf");}
+  @font-face{font-family:"HandEN"; src:url("fonts/caveat-400.woff2");}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#0d1116;width:404px;height:722px;overflow:hidden}
+  .poster{position:relative;width:404px;height:722px;overflow:hidden;isolation:isolate}
+  .canvas{position:absolute;top:0;left:0;width:${W}px;height:${H}px;transform:scale(${(404/W).toFixed(5)});transform-origin:0 0}
+  .bg{position:absolute;inset:0;filter:saturate(${cfg.sat}) contrast(${cfg.con}) brightness(${cfg.bri});}
+  .vignette{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(120% 85% at 55% 38%,transparent 40%,rgba(4,24,38,.26) 100%);}
+  .grain{position:absolute;inset:0;pointer-events:none;opacity:.15;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");}
+  .cn{font-family:"HandCN","Hannotate SC",serif;color:${cfg.ink};line-height:1;
+      white-space:nowrap;text-shadow:0 2px 14px rgba(3,22,38,.26);-webkit-text-stroke:.45px currentColor;}
+  .en{font-family:"HandEN","Bradley Hand",cursive;color:${cfg.accent};line-height:.95;
+      white-space:nowrap;text-shadow:0 2px 10px rgba(0,20,30,.36);}
+  .masthead .word{position:absolute;left:440px;top:44px;transform:translateX(-50%);
+      font-family:"Helvetica Neue",Arial,sans-serif;font-size:15px;font-weight:600;
+      letter-spacing:5px;color:rgba(248,253,255,.93);white-space:nowrap;}
+  .rule{position:absolute;top:51px;height:2px;background:rgba(248,253,255,.5);}
+  .rule.l{left:164px;width:148px}
+  .rule.r{right:164px;width:148px}
+  .dot{position:absolute;top:48px;width:6px;height:6px;border-radius:50%;background:rgba(248,253,255,.8)}
+  .word{font-family:"Helvetica Neue",Arial,sans-serif;font-size:15px;font-weight:600;
+      letter-spacing:6px;color:rgba(248,253,255,.93);white-space:nowrap;}
+  .footline{font-family:"Helvetica Neue",Arial,sans-serif;font-size:14px;font-weight:600;
+      letter-spacing:3px;color:rgba(248,253,255,.88);white-space:nowrap;}
+  textarea:disabled{opacity:.42;cursor:not-allowed;}
+</style></head>
+<body><div class="poster"><div class="canvas">
+${bgSVG}
+<div class="vignette"></div>
+${stage}
+<div class="grain"></div>
+</div></div></body></html>`;
+}
+
+/* ============================================================
+   界面
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const KEY = 'poster-workbench-v1';
+
+/** 数值显示：去掉多余小数尾巴（1.30 → 1.3，52.0 → 52） */
+const fmtV = v => String(Math.round(Number(v) * 1000) / 1000);
+
+// 面板里的滑杆由 SLIDERS 生成，加参数不用再手写 HTML
+['type','bg','grade'].forEach(g => {
+  const box = $('sld-' + g);
+  if (!box) return;
+  box.innerHTML = SLIDERS.filter(p => p.grp === g).map(p => `
+    <div class="slider">
+      <label>${p.label}</label>
+      <input type="range" id="${p.k}" min="${p.min}" max="${p.max}" step="${p.step}">
+      <var id="${p.k}V"></var>
+    </div>`).join('');
+});
+
+let state = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(KEY) || '{}'));
+
+// 支持 ?layout=vertical 这类直链，方便分享和逐版验收
+const urlLayout = new URLSearchParams(location.search).get('layout');
+if (urlLayout && LAYOUTS.some(l => l.id === urlLayout)) state.layout = urlLayout;
+
+// 版式按钮
+$('layouts').innerHTML = LAYOUTS.map(l =>
+  `<button data-layout="${l.id}">${l.name}<small>${l.sub}</small></button>`).join('');
+let BG_LIST = BG_IMAGES.slice();   // 当前文件夹里的图片；接口失败时退回内置列表
+
+function fillBgSelect(){
+  $('bgimg').innerHTML = BG_LIST.map(f =>
+    `<option value="${esc(f)}">${esc(f.replace(/\.[^.]+$/, ''))}</option>`).join('');
+  if (!BG_LIST.includes(state.bgimg) && BG_LIST.length) state.bgimg = BG_LIST[0];
+  if (BG_LIST.length) $('bgimg').value = state.bgimg;
+}
+
+/** 载入一个文件夹下的图片；失败就退回内置 assets 列表，保证还能用 */
+async function loadDir(dir){
+  $('bgdir').value = dir;
+  try {
+    const res = await fetch('/api/images?dir=' + encodeURIComponent(dir));
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    if (!data.files.length) throw new Error('这个文件夹里没有图片');
+    state.bgdir = data.dir;
+    BG_LIST = data.files;
+    if (!BG_LIST.includes(state.bgimg)) state.bgimg = BG_LIST[0];
+    $('status').className = 'status';
+    $('status').textContent = `已载入 ${data.files.length} 张 · ${data.dir.replace(/^.*\//, '')}`;
+  } catch (e) {
+    state.bgdir = '';
+    BG_LIST = BG_IMAGES.slice();
+    if (!BG_LIST.includes(state.bgimg)) state.bgimg = BG_LIST[0];
+    $('status').className = 'status err';
+    $('status').textContent = '读取文件夹失败：' + e.message;
+  }
+  fillBgSelect();
+  paint();
+}
+
+function syncUI(){
+  document.querySelectorAll('#layouts button').forEach(b =>
+    b.classList.toggle('on', b.dataset.layout === state.layout));
+  $('cn').value = state.cn;
+  $('en').value = state.en;
+  // 歌词居中版式不排英文，把输入框禁掉，避免改了没反应
+  const noEN = state.layout === 'lyric';
+  $('en').disabled = noEN;
+  $('enLabel').textContent = noEN ? '英文文案（此版式不排英文）' : '英文文案（可留空）';
+  $('mast').value = state.mast;
+  $('foot').value = state.foot;
+  $('ink').value = state.ink;
+  $('accent').value = state.accent;
+  fillBgSelect();
+  SLIDERS.forEach(p => {
+    $(p.k).value = state[p.k];
+    $(p.k + 'V').textContent = fmtV(state[p.k]) + p.unit;
+  });
+}
+
+let timer = null;
+function scheduleRender(){
+  clearTimeout(timer);
+  timer = setTimeout(paint, 110);
+}
+
+const SAFE = 30;      // 画幅安全边：文字离边 30px 以内算压线
+const MAX_TRIES = 3;  // 自动收窄最多重试次数，防止死循环
+
+let effScale = 1;     // 实际用于渲染的倍率（可能被自动收窄）
+let tries = 0;
+
+function paint(){
+  localStorage.setItem(KEY, JSON.stringify(state));
+  effScale = state.fsScale;
+  tries = 0;
+  build();
+}
+
+function build(){
+  const cfg = Object.assign({}, state, { fsScale: effScale });
+  $('preview').srcdoc = buildHTML(cfg, { base: '/' });
+}
+
+/**
+ * 预览加载完后实测每一行文字的边界。
+ * 为什么不能靠算：emWidth 假设每个汉字正好 1em，但手写体的实际字宽不是 1em，
+ * 按估算收窄仍会轻微出画。这里直接量 DOM，拿到真实包围盒。
+ */
+$('preview').addEventListener('load', () => {
+  const doc = $('preview').contentDocument;
+  if (!doc) return;
+
+  const k = 404 / W;                 // 画布缩放比，把 CSS px 换算回设计坐标
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+
+  // 注意：.cn 是 left:0;right:0 的整宽容器，直接量会永远等于画幅宽。
+  // 必须用 Range 量文字本身的紧包围盒。
+  const range = doc.createRange();
+  doc.querySelectorAll('.cn, .en').forEach(el => {
+    if (!el.textContent.trim()) return;
+    range.selectNodeContents(el);
+    const rects = range.getClientRects();
+    const list = rects.length ? Array.from(rects) : [el.getBoundingClientRect()];
+    list.forEach(r => {
+      if (!r.width && !r.height) return;
+      left   = Math.min(left,   r.left   / k);
+      right  = Math.max(right,  r.right  / k);
+      top    = Math.min(top,    r.top    / k);
+      bottom = Math.max(bottom, r.bottom / k);
+    });
+  });
+
+  if (left === Infinity) { $('fsHint').textContent = '暂无文案'; return; }
+
+  // 横向、纵向任一越界都要收
+  const overW = Math.max(right - (W - SAFE), SAFE - left, 0);
+  const overH = Math.max(bottom - (H - SAFE), SAFE - top, 0);
+  const over  = Math.max(overW / (W - SAFE * 2), overH / (H - SAFE * 2));
+
+  if (over > 0.002 && tries < MAX_TRIES) {
+    tries++;
+    effScale *= 1 - over;
+    build();
+    return;
+  }
+
+  const base = Math.round(METRICS.base);
+  if (Math.abs(effScale - state.fsScale) > 0.005) {
+    $('fsHint').textContent =
+      `基准 ${base}px · 已自动收窄到 ${effScale.toFixed(2)}×（画幅上限）`;
+    $('fsHint').style.color = '#ffb28f';
+  } else {
+    $('fsHint').textContent =
+      `基准 ${base}px · 最宽一行 ${Math.round(right - left)}px`;
+    $('fsHint').style.color = '';
+  }
+});
+
+/* ---------- 绑定 ---------- */
+$('layouts').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-layout]');
+  if (!btn) return;
+  state.layout = btn.dataset.layout;
+  syncUI(); paint();
+});
+
+[['cn','cn'],['en','en'],['mast','mast'],['foot','foot']].forEach(([id, key]) => {
+  $(id).addEventListener('input', e => {
+    state[key] = e.target.value;
+    // 文案改动只重绘，不回写输入框，避免光标跳动
+    localStorage.setItem(KEY, JSON.stringify(state));
+    scheduleRender();
+  });
+});
+
+[['ink','ink'],['accent','accent']].forEach(([id, key]) => {
+  $(id).addEventListener('input', e => { state[key] = e.target.value; scheduleRender(); });
+});
+
+$('bgimg').addEventListener('change', e => { state.bgimg = e.target.value; paint(); });
+$('bgdirGo').addEventListener('click', () => loadDir($('bgdir').value.trim() || 'assets'));
+$('bgdir').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadDir($('bgdir').value.trim() || 'assets');
+});
+
+SLIDERS.forEach(p => {
+  $(p.k).addEventListener('input', e => {
+    state[p.k] = parseFloat(e.target.value);
+    $(p.k + 'V').textContent = fmtV(state[p.k]) + p.unit;
+    scheduleRender();
+  });
+});
+
+$('reset').addEventListener('click', () => {
+  state = Object.assign({}, DEFAULTS);
+  syncUI(); paint();
+});
+
+/* ---------- 导出 ---------- */
+async function doExport(scale){
+  const status = $('status');
+  status.className = 'status';
+  status.textContent = '渲染中…';
+  $('export').disabled = $('export1x').disabled = true;
+
+  try {
+    // 必须用收窄后的倍率，否则预览不越界、导出却出画
+    const html = buildHTML(Object.assign({}, state, { fsScale: effScale }), {});
+    const res = await fetch('/render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html, scale }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'HTTP ' + res.status }));
+      throw new Error(err.error || '渲染失败');
+    }
+    const blob = await res.blob();
+    const ts = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `poster-${state.layout}-${ts}${scale === 2 ? '@2x' : ''}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    status.textContent = '已导出（' + (404 * scale) + '×' + (722 * scale) + '）';
+  } catch (err) {
+    status.className = 'status err';
+    status.textContent = '导出失败：' + err.message;
+  } finally {
+    $('export').disabled = $('export1x').disabled = false;
+  }
+}
+
+$('export').addEventListener('click', () => doExport(2));
+$('export1x').addEventListener('click', () => doExport(1));
+
+/* ---------- 启动 ---------- */
+syncUI();
+loadDir(state.bgdir || 'assets');
+</script>
+</body>
+</html>

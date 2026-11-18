@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>复刻 02 · 让每一个起风的日子</title>
+<style>
+  /* =========================================================
+     复刻 02「Captions for Autumn」  画布 404 x 722（9:16）
+     与海报 01 同一套方法，只是换了：
+       - 拉丝角度：-65°（近乎竖着的窗帘光/树影）
+       - 色场方向：沿画面左右变化（左暗橄榄 → 中金 → 右橙棕）
+       - 文字色：米白 #fdf3d8（不是纯白），标签用深棕细线框
+     ========================================================= */
+  @font-face { font-family: "HandCN"; src: url("../fonts/xi-mail.ttf"); }
+  @font-face { font-family: "HandEN"; src: url("../fonts/caveat-400.woff2"); }
+  @font-face { font-family: "SerifEN"; src: url("file:///Users/cass/Library/Fonts/zaoan-poster-fonts/en-serif-cormorant-garamond.ttf"); }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #12100a; }
+
+  .poster {
+    position: relative;
+    width: 404px; height: 722px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  /* 底色整体提饱和/对比，压掉 SVG 混出来的灰雾 */
+  .bg { position: absolute; inset: 0; filter: saturate(1.05) contrast(1.03) brightness(1.05); }
+
+  .grain {
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: .17; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* 暖调光晕 + 暗角，压住边缘 */
+  .glow {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(34% 26% at 70% 26%, rgba(255,244,206,.22) 0%, transparent 72%),
+      radial-gradient(120% 108% at 48% 42%, transparent 34%, rgba(24,22,7,.62) 100%),
+      linear-gradient(to top, rgba(20,20,6,.42), transparent 26%, transparent 74%, rgba(26,24,8,.26));
+  }
+
+  .stage { position: absolute; inset: 0; }
+  .line { position: absolute; white-space: nowrap; transform-origin: 0 50%; }
+
+  .cn {
+    font-family: "HandCN", "Hannotate SC", serif;
+    color: #fdf3d8;
+    line-height: 1;
+    text-shadow: 0 1px 8px rgba(48,32,6,.30);
+  }
+
+  /* 顶部胶囊标签 */
+  .pill {
+    position: absolute; left: 50%; top: 13px; transform: translateX(-50%);
+    padding: 7px 17px 8px;
+    border: 1px solid rgba(74,54,22,.62);
+    border-radius: 999px;
+    font-family: "SerifEN", Georgia, serif;
+    font-size: 10.5px; letter-spacing: .06em;
+    color: #4a3616; white-space: nowrap;
+  }
+
+  .day {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-family: "HandEN", cursive;
+    font-size: 20px; color: #fdf3d8; letter-spacing: .04em;
+    text-shadow: 0 1px 6px rgba(48,32,6,.28);
+  }
+  .date {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    font-family: "SerifEN", Georgia, serif;
+    font-size: 15px; letter-spacing: .12em; color: #fbf0d2;
+    text-shadow: 0 1px 6px rgba(48,32,6,.24);
+  }
+  .credit {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-family: "PingFang SC", sans-serif;
+    font-size: 8px; letter-spacing: .04em;
+    color: rgba(252,242,220,.78);
+  }
+  .pinyin {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-family: "SerifEN", Georgia, serif;
+    font-size: 6.6px; letter-spacing: .17em;
+    color: rgba(252,242,220,.72);
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <!-- ================= 背景 =================
+       做法：① 大色块（radial 渐变堆出来）+ ② 旋转光带层（各向异性模糊=拉丝）
+       色块留在屏幕坐标系，只有光带层旋转，这样可见范围不会把颜色挤掉 -->
+  <svg class="bg" width="404" height="722" viewBox="0 0 404 722">
+    <defs>
+      <filter id="smear2" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+        <feColorMatrix type="saturate" values="1.02" result="sat"/>
+        <feGaussianBlur in="sat" stdDeviation="44 6"/>
+      </filter>
+      <linearGradient id="vert2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"   stop-color="#fff3cb" stop-opacity=".10"/>
+        <stop offset=".32" stop-color="#fff3cb" stop-opacity="0"/>
+        <stop offset=".68" stop-color="#151705" stop-opacity=".08"/>
+        <stop offset="1"   stop-color="#121403" stop-opacity=".30"/>
+      </linearGradient>
+    </defs>
+
+    <rect width="404" height="722" fill="#8a6a24"/>
+
+    <!-- 参考 02 的拉丝角度是 -65°（近乎竖直），只需一层旋转 -->
+    <g transform="rotate(-65 202 361)" filter="url(#smear2)">
+      <image href="../assets/autumn-gold.png"
+             x="-298" y="-139" width="1000" height="1000"
+             preserveAspectRatio="xMidYMid slice"/>
+    </g>
+    <radialGradient id="core2" cx=".5" cy=".5" r=".5">
+      <stop offset="0"   stop-color="#fff8e2" stop-opacity=".46"/>
+      <stop offset=".55" stop-color="#fbe6b0" stop-opacity=".22"/>
+      <stop offset="1"   stop-color="#f0c66a" stop-opacity="0"/>
+    </radialGradient>
+    <ellipse cx="196" cy="96" rx="170" ry="140" fill="url(#core2)"/>
+    <rect width="404" height="722" fill="url(#vert2)"/>
+  </svg>
+
+  <div class="glow"></div>
+
+  <!-- ================= 文字 ================= -->
+  <div class="stage">
+    <div class="pill">Captions for Autumn</div>
+
+    <div class="line cn" style="left:118px; top:203px; font-size:48px; letter-spacing:.04em; transform:rotate(-2.5deg);">让每一个</div>
+    <div class="line cn" style="left:122px; top:267px; font-size:48px; letter-spacing:.02em; transform:rotate(-1.5deg);">起风的</div>
+    <div class="line cn" style="left:58px;  top:325px; font-size:48px; letter-spacing:.01em; transform:rotate(-1deg);">日子都温暖如同</div>
+    <div class="line cn" style="left:110px; top:389px; font-size:50px; letter-spacing:.01em; transform:rotate(-2deg);">昨日一样。</div>
+
+    <div class="day"  style="top:536px;">day</div>
+    <div class="date" style="top:570px;">【09/20】</div>
+
+    <div class="credit" style="top:644px;">@稿定文案收集录</div>
+    <div class="pinyin" style="top:660px;">YONG YUAN RE AI NI ZI JI</div>
+    <div class="pinyin" style="top:672px;">MEI TIAN DOU YAO HAO HAO AI ZI JI</div>
+  </div>
+
+  <div class="grain"></div>
+</div>
+</body>
+</html>

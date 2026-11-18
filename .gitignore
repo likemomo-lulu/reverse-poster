@@ -1,0 +1,20 @@
+# 过程中的图片，一律不入库
+
+# 底图素材（76M）
+assets/
+
+# 参考原稿
+refs/
+
+# 成品图、对比图
+out/**/*.png
+
+# 废弃版本
+out/_attic/
+
+# 工作台渲染临时文件
+_wb_render.html
+_wb_render.png
+workbench/_probe.html
+
+.DS_Store

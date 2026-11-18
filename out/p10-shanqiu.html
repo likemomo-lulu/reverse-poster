@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>李宗盛《山丘》 · 黄昏雪原（404×722）</title>
+<style>
+  @font-face { font-family: "HandCN"; src: url("../fonts/xi-mail.ttf"); }
+  @font-face { font-family: "HandEN"; src: url("../fonts/caveat-400.woff2"); }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #0d1116; }
+
+  .poster { position: relative; width: 404px; height: 722px; overflow: hidden; isolation: isolate; }
+  .canvas {
+    position: absolute; top: 0; left: 0;
+    width: 878px; height: 1569px;
+    transform: scale(0.46014); transform-origin: 0 0;
+  }
+
+  .bg { position: absolute; inset: 0; filter: saturate(1.02) contrast(1.14) brightness(0.92); }
+  .grain {
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: .15; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .vignette {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(125% 80% at 62% 18%, rgba(255,190,170,.10) 0%, transparent 48%),
+      radial-gradient(120% 85% at 55% 38%, transparent 40%, rgba(3,16,32,.30) 100%);
+  }
+
+  /* ---------- 文字 ---------- */
+  .stage { position: absolute; inset: 0; }
+  .cn {
+    position: absolute; left: 0; right: 0; text-align: center;
+    font-family: "HandCN", "Hannotate SC", serif;
+    color: #f4f9fd;
+    line-height: 1;
+    white-space: nowrap;
+    text-shadow: 0 0 20px rgba(4,16,30,.55), 0 0 8px rgba(4,16,30,.45), 0 2px 14px rgba(3,18,34,.42);
+    -webkit-text-stroke: .45px currentColor;
+  }
+  .word {
+    position: absolute; left: 74px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px; font-weight: 600; letter-spacing: 6px;
+    color: rgba(250,253,255,.97); white-space: nowrap; text-shadow: 0 2px 10px rgba(3,18,34,.45);
+  }
+  .footline {
+    position: absolute; left: 74px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px; font-weight: 600; letter-spacing: 3px;
+    color: rgba(250,253,255,.95); white-space: nowrap; text-shadow: 0 2px 10px rgba(3,18,34,.45);
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+<div class="canvas">
+
+  <!-- ================= 背景 =================
+       黄昏雪原：起伏的雪丘一层叠一层，正好对应"翻越每一个山丘"。
+       冷蓝压住整体，地平线留一线暮粉——"就快要老了"的那点余温。
+       横向拉丝平行于雪脊，避免把坡度拉成竖条。 -->
+  <svg class="bg" width="878" height="1569" viewBox="0 0 878 1569">
+    <defs>
+      <filter id="smear" x="-45%" y="-65%" width="190%" height="230%" color-interpolation-filters="sRGB">
+        <feColorMatrix type="saturate" values="1.18" result="sat"/>
+        <feGaussianBlur in="sat" stdDeviation="30 4"/>
+      </filter>
+      <linearGradient id="topshade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"   stop-color="#0a1220" stop-opacity=".18"/>
+        <stop offset=".34" stop-color="#0a1220" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="bottomshade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"   stop-color="#06101f" stop-opacity="0"/>
+        <stop offset="1"   stop-color="#06101f" stop-opacity=".26"/>
+      </linearGradient>
+    </defs>
+
+    <rect width="878" height="1569" fill="#243a58"/>
+
+    <g filter="url(#smear)" transform="rotate(-8 439 784)">
+      <image href="../assets/snow-dusk.png"
+             x="-511" y="-796" width="1900" height="2900"
+             preserveAspectRatio="xMidYMid slice"/>
+    </g>
+    <rect width="878" height="620" fill="url(#topshade)"/>
+    <rect y="880" width="878" height="689" fill="url(#bottomshade)"/>
+  </svg>
+
+  <div class="vignette"></div>
+
+  <!-- ================= 文字 ================= -->
+  <div class="stage">
+
+    <div class="cn" style="top:555px; font-size:54px; letter-spacing:.05em;">也许我们从未成熟</div>
+    <div class="cn" style="top:636px; font-size:54px; letter-spacing:.05em;">还没能晓得 就快要老了</div>
+    <div class="cn" style="top:717px; font-size:54px; letter-spacing:.05em;">尽管心里活着的还是那个年轻人</div>
+    <div class="cn" style="top:798px; font-size:54px; letter-spacing:.05em;">因为不安而频频回首</div>
+    <div class="cn" style="top:879px; font-size:54px; letter-spacing:.05em;">无知地索求 羞耻于求救</div>
+    <div class="cn" style="top:960px; font-size:54px; letter-spacing:.05em;">不知疲倦地翻越 每一个山丘</div>
+    <div class="word"     style="left:auto; right:120px; top:1048px; text-align:right;">SHAN QIU</div>
+    <div class="footline" style="left:auto; right:120px; top:1084px; text-align:right;">—— 李宗盛《山丘》</div>
+  </div>
+
+  <div class="grain"></div>
+</div>
+</div>
+<script>
+window.addEventListener('load', () => {
+  const k = 404/878;
+  let L=1e9, R=-1e9;
+  const range = document.createRange();
+  document.querySelectorAll('.cn').forEach(el => {
+    range.selectNodeContents(el);
+    range.getClientRects().forEach(r => {
+      L = Math.min(L, r.left/k); R = Math.max(R, r.right/k);
+    });
+  });
+  document.title = 'MEASURE|left=' + Math.round(L) + '|right=' + Math.round(R) +
+                   '|width=' + Math.round(R-L) + '|canvasW=878';
+});
+</body>
+</html>

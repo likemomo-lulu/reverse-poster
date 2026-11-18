@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>复刻 03b · 有人追着风（薰衣草 · 生图底 + 拉丝 / 404×722）</title>
+<style>
+  /* =========================================================
+     复刻 03「薰衣草花海」 404 x 722
+     这一版是**参数化模板**：整套配色走 CSS 变量，换主题只改下面的 --c-* 和 --accent。
+     结构仍是五层：背景(色场+拉丝) / 文字 / 装饰 / 收尾
+     ========================================================= */
+
+  /* ★★★ 参数区：换主题只动这一块 ★★★ */
+  .poster {
+    /* 色场 12 档：t=0 画面左下(地) → t=1 画面右上(天) */
+    --c-0:  #221a3f;   /* 最暗：花田根部 */
+    --c-1:  #2b1d50;
+    --c-2:  #37235f;   /* 薰衣草暗部 */
+    --c-3:  #4a2799;
+    --c-4:  #5c37bd;   /* 薰衣草主色 */
+    --c-5:  #6f47cc;
+    --c-6:  #8f66d4;   /* 向阳的花穗（最亮紫，贴地平线） */
+    --c-7:  #52428f;   /* 远坡/雾：要"暗而略饱和"，亮灰会变糊 */
+    --c-8:  #5f8cbb;   /* 远山 */
+    --c-9:  #74a6cf;
+    --c-10: #86b8d8;
+    --c-11: #a9cde8;   /* 天空最亮 */
+
+    --accent: #f5d76e;  /* 撞色（全画面只有这一个彩色） */
+    --ink:    #f8f4ff;  /* 文字暖白 */
+
+    /* 拉丝角度在下面 <g transform="rotate(-18 439 784)"> 里改 */
+  }
+  /* ★★★ 参数区结束 ★★★ */
+
+  .s0  { stop-color: var(--c-0); }   .s1  { stop-color: var(--c-1); }
+  .s2  { stop-color: var(--c-2); }   .s3  { stop-color: var(--c-3); }
+  .s4  { stop-color: var(--c-4); }   .s5  { stop-color: var(--c-5); }
+  .s6  { stop-color: var(--c-6); }   .s7  { stop-color: var(--c-7); }
+  .s8  { stop-color: var(--c-8); }   .s9  { stop-color: var(--c-9); }
+  .s10 { stop-color: var(--c-10); }  .s11 { stop-color: var(--c-11); }
+
+  @font-face { font-family: "HandCN"; src: url("../fonts/xi-mail.ttf"); }
+  @font-face { font-family: "HandEN"; src: url("../fonts/caveat-400.woff2"); }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #0d1116; }
+
+  .poster {
+    position: relative;
+    width: 404px; height: 722px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  /* 878 x 1569 设计坐标系 → 视觉 404 x 722 */
+  .canvas {
+    position: absolute; top: 0; left: 0;
+    width: 878px; height: 1569px;
+    transform: scale(0.46014);
+    transform-origin: 0 0;
+  }
+
+  .bg { position: absolute; inset: 0; filter: saturate(1.10) contrast(1.14) brightness(1.10); }
+  .grain {
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: .14; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .vignette {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(120% 78% at 64% 20%, rgba(255,246,255,.04) 0%, transparent 50%),
+      radial-gradient(120% 85% at 55% 38%, transparent 40%, rgba(14,8,32,.36) 100%);
+  }
+
+  .stage { position: absolute; inset: 0; }
+  .line { position: absolute; white-space: nowrap; transform-origin: 0 50%; }
+
+  .cn {
+    font-family: "HandCN", "Hannotate SC", serif;
+    color: var(--ink);
+    line-height: 1;
+    text-shadow: 0 2px 14px rgba(22,10,40,.24);
+    -webkit-text-stroke: .45px currentColor;
+  }
+  .en {
+    font-family: "HandEN", "Bradley Hand", cursive;
+    color: var(--accent);
+    line-height: .9;
+    text-shadow: 0 2px 10px rgba(22,10,40,.20);
+  }
+
+  .masthead .word {
+    position: absolute; left: 440px; top: 44px; transform: translateX(-50%);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px; font-weight: 600; letter-spacing: 5px;
+    color: rgba(250,246,255,.93); white-space: nowrap;
+  }
+  .rule { position: absolute; top: 51px; height: 2px; background: rgba(250,246,255,.5); }
+  .rule.l { left: 158px; width: 140px; }
+  .rule.r { right: 158px; width: 140px; }
+  .dot { position: absolute; top: 48px; width: 6px; height: 6px; border-radius: 50%; background: rgba(250,246,255,.8); }
+  .footline {
+    position: absolute; bottom: 47px; left: 0; right: 0; text-align: center;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px; font-weight: 600; letter-spacing: 3.5px;
+    color: rgba(250,246,255,.88);
+  }
+  .scribble { position: absolute; inset: 0; }
+</style>
+</head>
+<body>
+<div class="poster">
+<div class="canvas">
+
+  <!-- ================= ① 背景 =================
+       参考真身：薰衣草花海 + 远处青山 + 蓝天，横向甩镜头拉成斜线。
+       两层：色场（不旋转）+ 拉丝层（旋转 -18° 后各向异性模糊） -->
+  <svg class="bg" width="878" height="1569" viewBox="0 0 878 1569">
+    <defs>
+      <!-- 甩镜拉丝：沿局部 x 猛糊、y 几乎不糊（x:y ≈ 15:1） -->
+      <filter id="smear" x="-45%" y="-65%" width="190%" height="230%" color-interpolation-filters="sRGB">
+        <!-- 关键：先提饱和再糊。模糊是平均，平均必掉彩度，不提必成灰 -->
+        <feColorMatrix type="saturate" values="1.55" result="sat"/>
+        <feGaussianBlur in="sat" stdDeviation="62 4"/>
+      </filter>
+    </defs>
+
+    <rect width="878" height="1569" fill="#241a43"/>
+
+    <!-- 两层旋转变换的用意：
+         外层 rotate(-18) → 决定**拉丝方向**（滤镜的 x 轴跟着转）
+         内层 rotate(+30) → 抵消回 +12°，让**地平线**保持想要的倾角
+         净效果：地平线 +12°，拉丝 -18°，这正是参考图的拍法 -->
+    <g filter="url(#smear)" transform="rotate(-18 439 784)">
+      <g transform="rotate(30 439 784)">
+        <image href="../assets/lavender-dense.png"
+               x="-261" y="-460" width="1400" height="2489"
+               preserveAspectRatio="xMidYMid slice"/>
+      </g>
+    </g>
+
+    <!-- 调色层：糊完之后补回"远山压暗"，否则淡蓝的远山会和天空糊成白雾 -->
+    <defs>
+      <filter id="soft" x="-30%" y="-120%" width="160%" height="340%">
+        <feGaussianBlur stdDeviation="46"/>
+      </filter>
+      <linearGradient id="gray1" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"   stop-color="#1c1238" stop-opacity=".30"/>
+        <stop offset=".55" stop-color="#1c1238" stop-opacity=".10"/>
+        <stop offset="1"   stop-color="#1c1238" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <linearGradient id="skyfix" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#2b6ba8" stop-opacity=".10"/>
+      <stop offset=".22" stop-color="#2b6ba8" stop-opacity=".05"/>
+      <stop offset=".36" stop-color="#2b6ba8" stop-opacity="0"/>
+    </linearGradient>
+    <rect x="0" y="0" width="878" height="620" fill="url(#skyfix)"/>
+    <rect x="0" y="0" width="878" height="820" fill="url(#gray1)"/>
+    <!-- 大尺度亮区：地平线附近的天光，把明度跨度拉开（纯对比度调整拉不动） -->
+    <radialGradient id="sunc" cx=".5" cy=".5" r=".5">
+      <stop offset="0"   stop-color="#e8f2ff" stop-opacity=".58"/>
+      <stop offset=".55" stop-color="#cfe0ff" stop-opacity=".26"/>
+      <stop offset="1"   stop-color="#cfe0ff" stop-opacity="0"/>
+    </radialGradient>
+    <ellipse cx="470" cy="330" rx="430" ry="210" fill="url(#sunc)"/>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset=".55" stop-color="#150727" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#150727" stop-opacity=".58"/>
+    </linearGradient>
+    <rect x="0" y="0" width="878" height="1569" fill="url(#floor)"/>
+    <ellipse cx="470" cy="700" rx="720" ry="105" fill="#2b1352" opacity=".42" filter="url(#soft)"/>
+    <ellipse cx="300" cy="1250" rx="520" ry="260" fill="#4b2f8c" opacity=".30" filter="url(#soft)"/>
+  </svg>
+
+  <div class="vignette"></div>
+
+  <!-- ================= ② 文字 ================= -->
+  <div class="stage">
+    <!-- ③ 装饰：刊头 -->
+    <div class="masthead">
+      <div class="rule l"></div><div class="dot" style="left:312px"></div>
+      <div class="word">LAVENDER FIELD</div>
+      <div class="dot" style="right:312px"></div><div class="rule r"></div>
+    </div>
+
+    <!-- 主句 1：字距拉到 0.28em -->
+    <div class="line cn" style="left:216px; top:476px; font-size:107px; letter-spacing:.28em; transform:rotate(1.5deg);">有人追着风</div>
+
+    <!-- 主句 2 -->
+    <div class="line cn" style="left:361px; top:748px; font-size:98px; letter-spacing:.10em; transform:rotate(4deg);">有人等花开</div>
+
+    <!-- 主句 3：反向收紧字距 -->
+    <div class="line cn" style="left:219px; top:969px; font-size:104px; letter-spacing:-.05em; transform:rotate(-1.5deg);">都开成了花。</div>
+
+    <!-- 英文：逐行独立定位 -->
+    <div class="line en" style="left:201px; top:701px; font-size:66px; transform:rotate(-3.5deg);">There are</div>
+    <div class="line en" style="left:190px; top:747px; font-size:66px; transform:rotate(-2.5deg);">people</div>
+    <div class="line en" style="left:606px; top:1122px; font-size:58px; transform:rotate(-7deg);">chasing</div>
+    <div class="line en" style="left:486px; top:1204px; font-size:62px; transform:rotate(-4deg);">the wind</div>
+
+    <!-- 手绘弧线（撞色） -->
+    <svg class="scribble" viewBox="0 0 878 1569" fill="none">
+      <path d="M116 666 C 160 650, 248 640, 318 638 C 372 637, 404 638, 424 644"
+            stroke="#f5d76e" stroke-width="4" stroke-linecap="round" opacity=".92"/>
+      <path d="M496 1318 C 552 1290, 646 1270, 708 1270 C 748 1270, 774 1276, 792 1284"
+            stroke="#f5d76e" stroke-width="4" stroke-linecap="round" opacity=".92"/>
+    </svg>
+
+    <div class="footline">·DOU KAI CHENG HUA·</div>
+  </div>
+
+  <!-- ④ 收尾 -->
+  <div class="grain"></div>
+</div>
+</div>
+</body>
+</html>
