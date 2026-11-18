@@ -286,15 +286,14 @@ assets                                        # 内置 23 张
 
 ## 十一、仓库里有什么 / 没什么
 
-**入库（核心）**：方法论、复刻源文件（`out/*.html`）、工作台（`workbench/`）、分析脚本（`sample.py` / `tonal.py`）、字体。
+**入库**：方法论、复刻源文件（`out/*.html`）、工作台（`workbench/`）、分析脚本（`sample.py` / `tonal.py`）、字体，以及 **23 张底图**（`assets/`，75M）——clone 下来直接就能渲染。
 
 **不入库（`.gitignore`）**：
-- `assets/` — 底图素材（76M）
 - `refs/` — 参考原稿
-- `out/**/*.png` — 成品图、对比图
+- `out/**/*.png` — 成品图、对比图（重新生成即可）
 - `out/_attic/` — 废弃版本
 
-成品图重新生成即可：`python3 workbench/serve.py` 打开工作台导出，或用 Chrome headless 直接截 `out/*.html`（见「八、画幅」）。
+想复现成品图：`python3 workbench/serve.py` 打开工作台导出，或用 Chrome headless 直接截 `out/*.html`（见「八、画幅」）。
 
 ## 十二、字体许可
 
