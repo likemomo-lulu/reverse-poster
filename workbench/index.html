@@ -67,18 +67,27 @@
   .sub:first-of-type{margin-top:2px}
 
   /* ---------- 右栏 ---------- */
+  /* --k 是预览缩放比：窗口矮的时候由 fitStage() 调小，
+     保证海报上下始终留白，不会顶到页面上沿 */
   .stage{
     flex:1; height:100vh; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:16px; position:relative;
+    padding:28px 24px 20px; overflow:hidden;
   }
   .frame{
-    width:343px; height:614px; border-radius:3px; overflow:hidden;
+    width:calc(404px * var(--k, .85)); height:calc(722px * var(--k, .85));
+    border-radius:3px; overflow:hidden; position:relative; background:#0d1116;
     box-shadow:0 18px 60px rgba(0,0,0,.65);
   }
-  .frame iframe{
+  /* 双缓冲：两个 iframe 叠着放。改配置时往"背面"写，
+     等它 load 完再翻到正面，输入时就没有白闪和重排了 */
+  .frame .pv{
+    position:absolute; top:0; left:0;
     width:404px; height:722px; border:0;
-    transform:scale(0.85); transform-origin:top left;
+    transform:scale(var(--k, .85)); transform-origin:top left;
+    opacity:0; pointer-events:none;
   }
+  .frame .pv.on{opacity:1}
   .actions{display:flex; gap:10px; align-items:center}
   .btn{
     padding:10px 22px; border-radius:6px; border:1px solid var(--line);
@@ -148,12 +157,13 @@
     <textarea id="en" spellcheck="false"></textarea>
 
     <div class="row" style="margin-top:9px">
-      <input type="text" id="mast" placeholder="刊头（可留空）">
-      <input type="text" id="foot" placeholder="落款（可留空）">
+      <input type="text" id="mast" placeholder="刊头 · 顶部（可留空）">
+      <input type="text" id="foot" placeholder="落款 · 底部（可留空）">
     </div>
+    <div class="hint">六个版式通用：刊头贴顶、落款贴底，四边边距统一 88px；文案随意写，留空就不画。</div>
 
     <input type="text" id="credit" placeholder="歌词署名 · 作者 歌曲名" style="margin-top:7px">
-    <div class="hint" id="creditHint">仅「歌词居中」版式使用，贴在歌词右下方，字号比歌词小 6px；和歌词一起参与居中。注意内置手写体没有破折号字形，输入 —— 会是空白。</div>
+    <div class="hint" id="creditHint">仅「歌词居中」版式使用，贴在歌词右下方：字号为歌词的 0.89 倍（署名太长会自动缩到一行放得下），上方间距随「行距」联动；和歌词一起参与居中。注意内置手写体没有破折号字形，输入 —— 会是空白。</div>
   </div>
 
   <div class="grp">
@@ -163,7 +173,10 @@
 </div>
 
 <div class="stage">
-  <div class="frame"><iframe id="preview" title="预览"></iframe></div>
+  <div class="frame">
+    <iframe id="preview" class="pv on" title="预览"></iframe>
+    <iframe id="previewB" class="pv" title="预览" aria-hidden="true" tabindex="-1"></iframe>
+  </div>
   <div class="actions">
     <button class="btn primary" id="export">导出 @2x PNG</button>
     <button class="btn" id="export1x">导出 1x</button>
@@ -270,6 +283,43 @@ function fitUniform(lines, maxW, availH, ls, lh){
   const byW = maxW / maxEm;
   const byH = availH / (lines.length * lh);
   return Math.max(26, Math.min(byW, byH, 132));
+}
+
+/* 装饰层的四边安全边（设计坐标 878×1569）。
+   刊头距顶 = 落款距底 = 左右边距 = DECO，四个方向共用同一个数，改一处全变。 */
+const DECO = 88;
+
+/**
+ * 装饰层：顶部刊头 + 底部落款，所有版式共用。
+ *
+ * 为什么要用 flex 而不是固定坐标：早期版本把细线写死在 left:164 / right:164、
+ * 文字固定居中在 440px，刊头文案一长就直接压在线上。现在两侧细线是 flex:1，
+ * 自动吃掉剩余宽度，中间夹「圆点 + 文字」，所以文案多长都不会打架。
+ *
+ * 两侧线条的端点被 left/right 顶到 DECO，和落款用的是同一套边距；
+ * 落款居中，中轴和人眼对齐。
+ */
+function decoLayer(cfg){
+  const line = 'flex:1 1 auto;height:2px;background:rgba(248,253,255,.42)';
+  const dot  = 'flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:rgba(248,253,255,.85)';
+  let s = '';
+  if (cfg.mast) {
+    s += `
+      <div style="position:absolute; left:${DECO}px; right:${DECO}px; top:${DECO}px;
+        height:15px; display:flex; align-items:center; gap:14px;">
+        <div style="${line}"></div>
+        <div style="${dot}"></div>
+        <div class="word" style="flex:0 0 auto">${esc(cfg.mast)}</div>
+        <div style="${dot}"></div>
+        <div style="${line}"></div>
+      </div>`;
+  }
+  if (cfg.foot) {
+    s += `
+      <div class="footline" style="position:absolute; left:${DECO}px; right:${DECO}px;
+        bottom:${DECO}px; text-align:center;">${esc(cfg.foot)}</div>`;
+  }
+  return s;
 }
 
 /* ============================================================
@@ -404,23 +454,12 @@ function buildHTML(cfg, opts){
       top = (H - blockH) / 2;
     }
 
+    // 居中排版后文字常常落在画面亮部，光晕要比其它版式重一档才压得住
+    const HALO = 'text-shadow:0 0 20px rgba(4,16,30,.55),0 0 8px rgba(4,16,30,.45),' +
+                 '0 2px 14px rgba(3,18,34,.42);';
     stage += cn.map((t, i) => `
       <div class="cn" style="position:absolute; left:0; right:0; text-align:center;
-        top:${top + i * lh}px; font-size:${fs}px; letter-spacing:${LS}em;">${esc(t)}</div>`).join('');
-
-    if (isBottom) {
-      stage += `
-      <div class="word" style="position:absolute; left:74px; bottom:112px;">${esc(cfg.mast)}</div>
-      <div class="footline" style="position:absolute; left:74px; bottom:52px;">${esc(cfg.foot)}</div>`;
-    } else {
-      stage += `
-      <div class="masthead">
-        <div class="rule l"></div><div class="dot" style="left:318px"></div>
-        <div class="word">${esc(cfg.mast)}</div>
-        <div class="dot" style="right:318px"></div><div class="rule r"></div>
-      </div>
-      <div class="footline" style="position:absolute; left:0; right:0; bottom:52px; text-align:center;">${esc(cfg.foot)}</div>`;
-    }
+        top:${top + i * lh}px; font-size:${fs}px; letter-spacing:${LS}em;${HALO}">${esc(t)}</div>`).join('');
 
   } else if (cfg.layout === 'lyric') {
     // 歌词居中：整块水平+垂直居中，不排英文；署名跟在末行右下侧
@@ -434,8 +473,22 @@ function buildHTML(cfg, opts){
     // 署名是歌词块的一部分：它占的高度也要算进居中，
     // 否则只居中歌词、署名往下挂，整块看起来是偏下的
     const credit = (cfg.credit || '').trim();
-    const cfs = Math.max(12, fs - 6);       // 署名字号：比歌词小 6px
-    const CREDIT_GAP = 48;                  // 署名与歌词墨迹底的间距（px）
+
+    // 右端锚点：贴齐最长一行右缘（歌词整块居中，右缘 = 画幅中心 + 最宽一行的一半）
+    const creditRightPad = Math.max(20, (W - METRICS.maxW) / 2);
+
+    // 署名两个尺寸都按比例算，不写死像素：
+    //   字号 = 歌词字号 × 0.89
+    //   间距 = 行高 lh × 0.6 —— 行距拉大时署名跟着往下让
+    // 但署名通常比歌词长（「—— 李宗盛《给自己的歌》」13 个字 vs 歌词最长 6 个字），
+    // 一行放不下时 text-align:right 会失效、文字从左边开始往右溢，看起来就成了"左对齐"。
+    // 所以按「右边距 + 左侧 60 安全边」反算字号上限，超了就等比缩，保证整行塞得下。
+    let cfs = Math.max(12, fs * 0.89);
+    if (credit) {
+      const fitW = W - creditRightPad - 60;
+      cfs = Math.max(12, Math.min(cfs, fitW / emWidth(credit, 0)));
+    }
+    const CREDIT_GAP = lh * 0.6;
     const creditH = credit ? CREDIT_GAP + cfs : 0;
     const top = (H - (inkH + creditH)) / 2;
 
@@ -448,10 +501,11 @@ function buildHTML(cfg, opts){
 
     // 署名：独立字段，右端对齐到最长一行，挂在歌词下方
     if (credit) {
-      // 歌词是整块居中的，右端位置 = 画幅中心 − 最宽一行的一半
-      const rightPad = Math.max(20, (W - METRICS.maxW) / 2);
-      stage += `<div class="credit" style="position:absolute; left:auto; right:${rightPad.toFixed(1)}px;
-        top:${(top + inkH + CREDIT_GAP).toFixed(1)}px; font-size:${cfs.toFixed(1)}px;${HALO}">${esc(credit)}</div>`;
+      // left:0 + right:X + text-align:right：盒子铺满到右边距、文字贴右；
+      // 字号已在上面按可用宽度收窄，不会再溢出（溢出时右对齐会失效）
+      stage += `<div class="credit" style="position:absolute; left:0; right:${creditRightPad.toFixed(1)}px;
+        top:${(top + inkH + CREDIT_GAP).toFixed(1)}px; font-size:${cfs.toFixed(1)}px;
+        text-align:right;${HALO}">${esc(credit)}</div>`;
     }
 
   } else {
@@ -487,27 +541,10 @@ function buildHTML(cfg, opts){
       y += scale[i % scale.length] * lh;
     });
 
-    stage += `
-      <div class="masthead">
-        <div class="rule l"></div><div class="dot" style="left:318px"></div>
-        <div class="word">${esc(cfg.mast)}</div>
-        <div class="dot" style="right:318px"></div><div class="rule r"></div>
-      </div>
-      <div class="footline" style="position:absolute; left:0; right:0; bottom:52px; text-align:center;">${esc(cfg.foot)}</div>`;
   }
 
-  /* 竖排 / 巨句 没有走上面两个分支的刊头，统一补一个 */
-  if (!['vary','uniform','bottom','lyric'].includes(cfg.layout)) {
-    stage += `
-      <div class="masthead">
-        <div class="rule l"></div><div class="dot" style="left:318px"></div>
-        <div class="word">${esc(cfg.mast)}</div>
-        <div class="dot" style="right:318px"></div><div class="rule r"></div>
-      </div>`;
-    if (cfg.layout !== 'bottom') {
-      stage += `<div class="footline" style="position:absolute; left:0; right:0; bottom:52px; text-align:center;">${esc(cfg.foot)}</div>`;
-    }
-  }
+  /* 装饰层：六个版式共用同一套刊头 / 落款 */
+  stage += decoLayer(cfg);
 
   /* ---------- 完整 HTML ---------- */
   const base = opts.base ? `<base href="${opts.base}">` : '';
@@ -528,15 +565,8 @@ function buildHTML(cfg, opts){
       line-height:1;white-space:nowrap;text-align:right;opacity:.9;}
   .en{font-family:${fontStack(cfg.fontEN, '"HandEN","Bradley Hand",cursive')};color:${cfg.accent};line-height:.95;
       white-space:nowrap;text-shadow:0 2px 10px rgba(0,20,30,.36);}
-  .masthead .word{position:absolute;left:440px;top:44px;transform:translateX(-50%);
-      font-family:"Helvetica Neue",Arial,sans-serif;font-size:15px;font-weight:600;
-      letter-spacing:5px;color:rgba(248,253,255,.93);white-space:nowrap;}
-  .rule{position:absolute;top:51px;height:2px;background:rgba(248,253,255,.5);}
-  .rule.l{left:164px;width:148px}
-  .rule.r{right:164px;width:148px}
-  .dot{position:absolute;top:48px;width:6px;height:6px;border-radius:50%;background:rgba(248,253,255,.8)}
   .word{font-family:"Helvetica Neue",Arial,sans-serif;font-size:15px;font-weight:600;
-      letter-spacing:6px;color:rgba(248,253,255,.93);white-space:nowrap;}
+      letter-spacing:5px;color:rgba(248,253,255,.93);white-space:nowrap;}
   .footline{font-family:"Helvetica Neue",Arial,sans-serif;font-size:14px;font-weight:600;
       letter-spacing:3px;color:rgba(248,253,255,.88);white-space:nowrap;}
   textarea:disabled{opacity:.42;cursor:not-allowed;}
@@ -552,6 +582,19 @@ ${stage}
    ============================================================ */
 const $ = id => document.getElementById(id);
 const KEY = 'poster-workbench-v2';
+
+/**
+ * 预览缩放：海报是 404×722，窗口矮的时候按比例缩小，
+ * 保证上下留白（不缩小的话 flex 居中会把海报顶出可视区上沿）。
+ * 预留高度 = 上下 padding 48 + 两个 gap 32 + 按钮行 44 + 状态行 20 ≈ 144，取 170 留余量。
+ */
+function fitStage(){
+  const avail = window.innerHeight - 170;
+  const k = Math.max(0.45, Math.min(0.85, avail / 722));
+  document.documentElement.style.setProperty('--k', k.toFixed(4));
+}
+fitStage();
+window.addEventListener('resize', fitStage);
 
 /** 数值显示：去掉多余小数尾巴（1.30 → 1.3，52.0 → 52） */
 const fmtV = v => String(Math.round(Number(v) * 1000) / 1000);
@@ -622,10 +665,8 @@ function syncUI(){
   $('mast').value = state.mast;
   $('foot').value = state.foot;
   $('credit').value = state.credit || '';
-  // 歌词署名只有「歌词居中」用得上；该版式不排刊头/落款，反过来也一样
+  // 署名只有「歌词居中」用得上；刊头/落款两种版式都能用（歌词版式靠它撑上下画框）
   $('credit').disabled = !noEN;
-  $('mast').disabled = noEN;
-  $('foot').disabled = noEN;
   $('fontCN').value = state.fontCN || '';
   $('fontEN').value = state.fontEN || '';
   $('ink').value = state.ink;
@@ -656,9 +697,27 @@ function paint(){
   build();
 }
 
+/* 双缓冲：FRAMES[cur] 是在正面显示的，另一个在背面。
+   每次都把新 HTML 写进背面，加载完再整帧翻上来——
+   这样输入不会白闪、不会重排，自动收窄连跑三次也看不出来。 */
+const FRAMES = [$('preview'), $('previewB')];
+let cur = 0;
+let seq = 0;    // 每次 build 自增；只有"最新序号"的加载才允许翻面
+
 function build(){
   const cfg = Object.assign({}, state, { fsScale: effScale });
-  $('preview').srcdoc = buildHTML(cfg, { base: '/' });
+  const back = FRAMES[1 - cur];
+  seq += 1;
+  // 在 <head> 里打一个序号戳：加载完成时比对，过期的加载直接丢弃。
+  // 否则快速输入时，旧帧的 load 会先把面翻过去，新内容就再也上不来了。
+  back.srcdoc = buildHTML(cfg, { base: '/' })
+    .replace('<head>', `<head><meta name="wb-seq" content="${seq}">`);
+}
+
+function flip(){
+  FRAMES[cur].classList.remove('on');
+  cur = 1 - cur;
+  FRAMES[cur].classList.add('on');
 }
 
 /**
@@ -666,9 +725,11 @@ function build(){
  * 为什么不能靠算：emWidth 假设每个汉字正好 1em，但手写体的实际字宽不是 1em，
  * 按估算收窄仍会轻微出画。这里直接量 DOM，拿到真实包围盒。
  */
-$('preview').addEventListener('load', () => {
-  const doc = $('preview').contentDocument;
+FRAMES.forEach(frame => frame.addEventListener('load', () => {
+  const doc = frame.contentDocument;
   if (!doc) return;
+  const stamp = doc.querySelector('meta[name="wb-seq"]');
+  if (!stamp || Number(stamp.content) !== seq) return;   // 空白帧 / 过期加载
 
   const k = 404 / W;                 // 画布缩放比，把 CSS px 换算回设计坐标
   let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
@@ -690,7 +751,7 @@ $('preview').addEventListener('load', () => {
     });
   });
 
-  if (left === Infinity) { $('fsHint').textContent = '暂无文案'; return; }
+  if (left === Infinity) { $('fsHint').textContent = '暂无文案'; flip(); return; }
 
   // 横向、纵向任一越界都要收
   const overW = Math.max(right - (W - SAFE), SAFE - left, 0);
@@ -714,7 +775,8 @@ $('preview').addEventListener('load', () => {
       `基准 ${base}px · 最宽一行 ${Math.round(right - left)}px`;
     $('fsHint').style.color = '';
   }
-});
+  flip();                            // 背面画好了，整帧翻到正面
+}));
 
 /* ---------- 绑定 ---------- */
 $('layouts').addEventListener('click', e => {

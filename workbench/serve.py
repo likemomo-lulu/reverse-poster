@@ -282,6 +282,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if args and str(args[1]).startswith(("4", "5")):
             sys.stderr.write("[%s] %s\n" % (time.strftime("%H:%M:%S"), fmt % args))
 
+    # 文档类一律禁用缓存。SimpleHTTPRequestHandler 只发 Last-Modified，
+    # 浏览器会按「年龄的 10%」做启发式缓存——改完 index.html 刷新还是旧的，
+    # 让人误以为服务没重启。图片仍走默认（带 Last-Modified，浏览器会 304）。
+    NO_STORE_EXT = (".html", ".js", ".css", ".json")
+
+    def end_headers(self):
+        path = (urlparse(self.path).path or "").lower()
+        if path.endswith(self.NO_STORE_EXT) or path in ("", "/"):
+            self.send_header("Cache-Control", "no-store, max-age=0")
+            self.send_header("Pragma", "no-cache")
+        super().end_headers()
+
     def do_GET(self):
         # SimpleHTTPRequestHandler 不会剥查询串，/?layout=vary 会被当成目录
         url = urlparse(self.path)
