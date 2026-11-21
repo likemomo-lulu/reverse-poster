@@ -46,6 +46,7 @@
   }
   textarea:focus, input[type=text]:focus, select:focus{border-color:#3a4757}
   textarea{min-height:96px}
+  input:disabled, textarea:disabled{opacity:.35; cursor:not-allowed; background:#0a0f13;}
 
   .row{display:flex; gap:8px; align-items:center}
   .row > *{min-width:0}
@@ -62,6 +63,8 @@
   .swatches span{color:var(--dim); font-size:11px}
 
   .hint{color:#6d7f90; font-size:11px; line-height:1.6; margin-top:6px}
+  .sub{color:#9db0c2; font-size:12px; font-weight:600; margin:12px 0 6px}
+  .sub:first-of-type{margin-top:2px}
 
   /* ---------- 右栏 ---------- */
   .stage{
@@ -102,42 +105,31 @@
   </div>
 
   <div class="grp">
-    <label>中文文案（一行一句）</label>
-    <textarea id="cn" spellcheck="false"></textarea>
-  </div>
-
-  <div class="grp">
-    <label id="enLabel">英文文案（可留空）</label>
-    <textarea id="en" spellcheck="false"></textarea>
-  </div>
-
-  <div class="grp">
-    <label>刊头 / 落款</label>
-    <div class="row">
-      <input type="text" id="mast" placeholder="刊头，如 OPEN SEA">
-      <input type="text" id="foot" placeholder="落款，如 ·DOU SHI HAO FENG LANG·">
+    <label>底图</label>
+    <div class="row" style="margin-bottom:7px">
+      <input type="text" id="bgdir" placeholder="底图文件夹路径" spellcheck="false">
+      <button class="btn" id="bgdirGo" style="padding:8px 12px;flex:0 0 auto">载入</button>
     </div>
+    <select id="bgimg"></select>
   </div>
 
   <div class="grp">
-    <label>排版</label>
+    <label>字体</label>
+    <div class="row">
+      <input type="text" id="fontCN" list="font-list" placeholder="中文手写体">
+      <input type="text" id="fontEN" list="font-list" placeholder="英文手写体">
+    </div>
+    <datalist id="font-list"></datalist>
+    <button class="btn" id="scanFonts" style="width:100%;margin-top:7px">扫描本机字体</button>
+    <div class="hint" id="fontHint">留空用内置字体；也可直接输入字体名</div>
+
+    <div class="sub">排版</div>
     <div id="sld-type"></div>
     <div class="hint" id="fsHint"></div>
   </div>
 
   <div class="grp">
-    <label>字体（本机）</label>
-    <div class="row">
-      <input type="text" id="fontCN" list="font-list" placeholder="中文手写，默认内置">
-      <input type="text" id="fontEN" list="font-list" placeholder="英文手写，默认内置">
-    </div>
-    <datalist id="font-list"></datalist>
-    <button class="btn" id="scanFonts" style="width:100%;margin-top:7px">扫描本机字体</button>
-    <div class="hint" id="fontHint">留空用内置字体；也可直接输入字体名</div>
-  </div>
-
-  <div class="grp">
-    <label>颜色</label>
+    <label>字体颜色</label>
     <div class="swatches">
       <input type="color" id="ink" title="文字色">
       <span>文字</span>
@@ -147,18 +139,21 @@
   </div>
 
   <div class="grp">
-    <label>底图</label>
-    <div class="row" style="margin-bottom:7px">
-      <input type="text" id="bgdir" placeholder="文件夹路径，如 assets 或 ~/Pictures" spellcheck="false">
-      <button class="btn" id="bgdirGo" style="padding:8px 12px;flex:0 0 auto">载入</button>
-    </div>
-    <select id="bgimg"></select>
-    <div id="sld-bg" style="margin-top:9px"></div>
-  </div>
+    <label>文案</label>
 
-  <div class="grp">
-    <label>调色</label>
-    <div id="sld-grade"></div>
+    <div class="sub">中文（一行一句）</div>
+    <textarea id="cn" spellcheck="false"></textarea>
+
+    <div class="sub" id="enLabel">英文（可留空）</div>
+    <textarea id="en" spellcheck="false"></textarea>
+
+    <div class="row" style="margin-top:9px">
+      <input type="text" id="mast" placeholder="刊头（可留空）">
+      <input type="text" id="foot" placeholder="落款（可留空）">
+    </div>
+
+    <input type="text" id="credit" placeholder="歌词署名 · 作者 歌曲名" style="margin-top:7px">
+    <div class="hint" id="creditHint">仅「歌词居中」版式使用，贴在歌词右下方，字号比歌词小 6px；和歌词一起参与居中。注意内置手写体没有破折号字形，输入 —— 会是空白。</div>
   </div>
 
   <div class="grp">
@@ -191,41 +186,39 @@ const LAYOUTS = [
   { id:'lyric',   name:'歌词居中', sub:'整块居中·无英文' },
 ];
 
+// 接口失败时的兜底列表：assets/ 里放的是成品底图（已拉丝调色），
+// 未加工的原图在 assets/原图/，不参与选图
 const BG_IMAGES = [
-  'grass-midday.png','autumn-gold.png','lavender-dense.png','tea-green.png',
-  'sakura-hill.png','snow-dusk.png','blackgold-skyline.png','wheat-gold.png',
-  'sea-glitter.png','sea-dusk.png',
+  '草原青山.png','暖金秋叶.png','薰衣草花海.png','雨雾茶园.png','樱湖春景.png',
+  '黄昏雪原.png','黑金天际线.png','麦黄田野.png','暖阳海面.png','山丘.png',
 ];
 
 /* ============================================================
    滑杆参数表（单一数据源）
    默认值、面板 HTML、回填、事件绑定全部由这张表生成。
    加一个滑杆 = 这里加一行 + buildHTML 里读 cfg.xxx，不用再改 4 个地方。
-   grp 对应面板分组：type=排版 / bg=底图 / grade=调色
+   grp 对应面板分组：type=排版
+   底图是成品（拉丝、色调都已在上游调好），工作台不再叠第二层处理，
+   所以这里只剩排版参数。
    ============================================================ */
 const SLIDERS = [
   { grp:'type',  k:'fsScale', label:'字号倍率', min:0.55, max:1.6,  step:0.01, def:1.00, unit:'×' },
   { grp:'type',  k:'ls',      label:'字距',     min:-0.05,max:0.40, step:0.01, def:0.05, unit:'em' },
-  { grp:'bg',    k:'angle',   label:'拉丝角度', min:-80,  max:80,   step:1,    def:-9,   unit:'°' },
-  { grp:'bg',    k:'blur',    label:'拉丝长度', min:10,   max:110,  step:1,    def:52,   unit:'' },
-  { grp:'bg',    k:'presat',  label:'预饱和',   min:0.6,  max:2,    step:0.02, def:1.30, unit:'' },
-  { grp:'bg',    k:'crop',    label:'取景上下', min:-700, max:700,  step:10,   def:-370, unit:'' },
-  { grp:'grade', k:'sat',     label:'饱和',     min:0.5,  max:1.8,  step:0.01, def:1.20, unit:'' },
-  { grp:'grade', k:'con',     label:'对比',     min:0.7,  max:1.8,  step:0.01, def:1.18, unit:'' },
-  { grp:'grade', k:'bri',     label:'明度',     min:0.6,  max:1.5,  step:0.01, def:0.90, unit:'' },
+  { grp:'type',  k:'lh',      label:'行距',     min:0.70, max:2.20, step:0.01, def:1.00, unit:'×' },
 ];
 
 const DEFAULTS = Object.assign({
   fontCN: '', fontEN: '',
   layout:'bottom',
-  cn:'有人等潮来\n有人追光去\n有人把夏天折成纸船，\n放进退潮的水里。\n都是好风浪。',
-  en:'There are people\nwaiting for the tide',
-  mast:'OPEN SEA',
-  foot:'·DOU SHI HAO FENG LANG·',
+  cn:'',
+  en:'',
+  mast:'',
+  foot:'',
+  credit:'',
   ink:'#f2fcfd',
   accent:'#ff7a45',
   bgdir:'',            // 底图文件夹（服务端回传的绝对路径）
-  bgimg:'sea-glitter.png',
+  bgimg:'',
 }, Object.fromEntries(SLIDERS.map(p => [p.k, p.def])));   // 滑杆默认值统一来自 SLIDERS
 
 /* ============================================================
@@ -307,6 +300,7 @@ function buildHTML(cfg, opts){
   ADV = measureAdvance(cfg.fontCN);  // 换字体先量字宽，排版才不会崩
 
   const LS = Number(cfg.ls);        // 基准字距（em），由面板「字距」控制
+  const LH = Number(cfg.lh) || 1;   // 行距倍率，乘在各版式的基准行高上（1 = 原视觉）
   if (!isFinite(LS)) throw new Error('字距参数非法：' + cfg.ls);
 
   /* ---------- 背景 ---------- */
@@ -317,33 +311,9 @@ function buildHTML(cfg, opts){
         : 'file://' + (cfg.bgdir + '/' + cfg.bgimg).split('/').map(encodeURIComponent).join('/'))
     : 'assets/' + cfg.bgimg;
 
-  const boxW = 1900, boxH = 2900;
-  const ix = 439 - boxW / 2;
-  const iy = 784 - boxH / 2 + Number(cfg.crop);
-  const horiz = Math.abs(Number(cfg.angle)) < 45;
-  const std = horiz
-    ? '"' + cfg.blur + ' 4"'
-    : '"4 ' + cfg.blur + '"';
-
-  const bgSVG = `
-  <svg class="bg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-    <defs>
-      <filter id="smear" x="-45%" y="-65%" width="190%" height="230%" color-interpolation-filters="sRGB">
-        <feColorMatrix type="saturate" values="${cfg.presat}" result="sat"/>
-        <feGaussianBlur in="sat" stdDeviation=${std}/>
-      </filter>
-      <linearGradient id="topshade" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#0a1220" stop-opacity=".16"/>
-        <stop offset=".30" stop-color="#0a1220" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <rect width="${W}" height="${H}" fill="#1b2733"/>
-    <g filter="url(#smear)" transform="rotate(${cfg.angle} 439 784)">
-      <image href="${bgHref}" x="${ix}" y="${iy}" width="${boxW}" height="${boxH}"
-             preserveAspectRatio="xMidYMid slice"/>
-    </g>
-    <rect width="${W}" height="620" fill="url(#topshade)"/>
-  </svg>`;
+  // 底图在上游已经是成品（拉丝、预饱和、色调都调好了），这里原样铺满。
+  // 再叠一层滤镜就会「二次处理」——笔触变糊、颜色发闷，所以这里什么都不加。
+  const bgSVG = `<img class="bg" src="${bgHref}" alt="">`;
 
   /* ---------- 文字层 ---------- */
   let stage = '';
@@ -356,7 +326,7 @@ function buildHTML(cfg, opts){
     // 一列的总高 = 字数 × 字号 + 字间空隙，字距变了高度也得跟着变，否则会冲出画幅
     const colFactor = 1 + LSv * (maxLen - 1) / maxLen;
     const fs = Math.max(30, Math.min((H - 620) / (maxLen * colFactor), 118)) * FS;
-    const colGap = fs * 1.42;
+    const colGap = fs * 1.42 * LH;
     METRICS.base = fs;
     // 竖排的约束在横向：最左一列的左边缘不能跑出画幅
     METRICS.maxW = right0 + (cn.length - 1) * colGap + fs;
@@ -382,8 +352,8 @@ function buildHTML(cfg, opts){
     const fs2 = Math.max(34, fs1 * 0.5);
     METRICS.base = fs1;
     track(head, LShead, fs1);
-    const lh1 = fs1 * 1.05;
-    const lh2 = fs2 * 1.28;
+    const lh1 = fs1 * 1.05 * LH;
+    const lh2 = fs2 * 1.28 * LH;
     const gapRule = 46;        // 首句到细线
     const gapAfter = 92;       // 细线到副句
     const enBlock = en.length ? 30 + 46 * 1.2 : 0;
@@ -416,10 +386,10 @@ function buildHTML(cfg, opts){
     // 等大：统一字号，水平居中
     const isBottom = cfg.layout === 'bottom';
     const availH = isBottom ? 730 : 1000;
-    const fs = fitUniform(cn, W - 140, availH, LS, 1.5) * FS;
+    const fs = fitUniform(cn, W - 140, availH, LS, 1.5 * LH) * FS;
     METRICS.base = fs;
     cn.forEach(t => track(t, LS, fs));
-    const lh = fs * 1.5;
+    const lh = fs * 1.5 * LH;
     const blockH = cn.length * lh;
 
     let top;
@@ -455,12 +425,19 @@ function buildHTML(cfg, opts){
   } else if (cfg.layout === 'lyric') {
     // 歌词居中：整块水平+垂直居中，不排英文；署名跟在末行右下侧
     // 留白按"墨迹"算而不是按行盒：末行只占一个字高，行盒里多出来的空白不该算进去
-    const fs = fitUniform(cn, W - 90, 1000, LS, 1.5) * FS;
+    const fs = fitUniform(cn, W - 90, 1000, LS, 1.5 * LH) * FS;
     METRICS.base = fs;
     cn.forEach(t => track(t, LS, fs));
-    const lh = fs * 1.5;
+    const lh = fs * 1.5 * LH;
     const inkH = (cn.length - 1) * lh + fs;
-    const top = (H - inkH) / 2;
+
+    // 署名是歌词块的一部分：它占的高度也要算进居中，
+    // 否则只居中歌词、署名往下挂，整块看起来是偏下的
+    const credit = (cfg.credit || '').trim();
+    const cfs = Math.max(12, fs - 6);       // 署名字号：比歌词小 6px
+    const CREDIT_GAP = 48;                  // 署名与歌词墨迹底的间距（px）
+    const creditH = credit ? CREDIT_GAP + cfs : 0;
+    const top = (H - (inkH + creditH)) / 2;
 
     // 居中排版后文字常常落在画面亮部，光晕要比其它版式重一档才压得住
     const HALO = 'text-shadow:0 0 20px rgba(4,16,30,.55),0 0 8px rgba(4,16,30,.45),' +
@@ -469,16 +446,12 @@ function buildHTML(cfg, opts){
       <div class="cn" style="position:absolute; left:0; right:0; text-align:center;
         top:${top + i * lh}px; font-size:${fs}px; letter-spacing:${LS}em;${HALO}">${esc(t)}</div>`).join('');
 
-    // 署名：右对齐到最长一行的右端，紧贴末行
-    let metaY = top + inkH + 34;
-    if (cfg.mast) {
-      stage += `<div class="word" style="position:absolute; left:auto; right:120px;
-        text-align:right; top:${metaY}px;${HALO}">${esc(cfg.mast)}</div>`;
-      metaY += 36;
-    }
-    if (cfg.foot) {
-      stage += `<div class="footline" style="position:absolute; left:auto; right:120px;
-        text-align:right; top:${metaY}px;${HALO}">${esc(cfg.foot)}</div>`;
+    // 署名：独立字段，右端对齐到最长一行，挂在歌词下方
+    if (credit) {
+      // 歌词是整块居中的，右端位置 = 画幅中心 − 最宽一行的一半
+      const rightPad = Math.max(20, (W - METRICS.maxW) / 2);
+      stage += `<div class="credit" style="position:absolute; left:auto; right:${rightPad.toFixed(1)}px;
+        top:${(top + inkH + CREDIT_GAP).toFixed(1)}px; font-size:${cfs.toFixed(1)}px;${HALO}">${esc(credit)}</div>`;
     }
 
   } else {
@@ -487,10 +460,10 @@ function buildHTML(cfg, opts){
     const LS_OFF = [0.05, 0.07, -0.03, 0.01, -0.07];   // 相对基准字距的偏移
     const totalScale = cn.reduce((a, _, i) => a + scale[i % scale.length], 0);
     const maxLineEm = Math.max(1, ...cn.map(t => emWidth(t, LS + 0.07)));
-    const fs = Math.max(28, Math.min((W - 150) / maxLineEm, 1000 / (totalScale * 1.36), 132)) * FS;
+    const fs = Math.max(28, Math.min((W - 150) / maxLineEm, 1000 / (totalScale * 1.36 * LH), 132)) * FS;
     METRICS.base = fs;
     cn.forEach((t, i) => track(t, LS + 0.07, fs * scale[i % scale.length]));
-    const lh = fs * 1.36;
+    const lh = fs * 1.36 * LH;
     const blockH = totalScale * lh;
     let y = (H - blockH) / 2;
 
@@ -548,13 +521,11 @@ function buildHTML(cfg, opts){
   html,body{background:#0d1116;width:404px;height:722px;overflow:hidden}
   .poster{position:relative;width:404px;height:722px;overflow:hidden;isolation:isolate}
   .canvas{position:absolute;top:0;left:0;width:${W}px;height:${H}px;transform:scale(${(404/W).toFixed(5)});transform-origin:0 0}
-  .bg{position:absolute;inset:0;filter:saturate(${cfg.sat}) contrast(${cfg.con}) brightness(${cfg.bri});}
-  .vignette{position:absolute;inset:0;pointer-events:none;
-    background:radial-gradient(120% 85% at 55% 38%,transparent 40%,rgba(4,24,38,.26) 100%);}
-  .grain{position:absolute;inset:0;pointer-events:none;opacity:.15;mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");}
+  .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
   .cn{font-family:${fontStack(cfg.fontCN, '"HandCN","Hannotate SC",serif')};color:${cfg.ink};line-height:1;
       white-space:nowrap;text-shadow:0 2px 14px rgba(3,22,38,.26);-webkit-text-stroke:.45px currentColor;}
+  .credit{font-family:${fontStack(cfg.fontCN, '"HandCN","Hannotate SC",serif')};color:${cfg.ink};
+      line-height:1;white-space:nowrap;text-align:right;opacity:.9;}
   .en{font-family:${fontStack(cfg.fontEN, '"HandEN","Bradley Hand",cursive')};color:${cfg.accent};line-height:.95;
       white-space:nowrap;text-shadow:0 2px 10px rgba(0,20,30,.36);}
   .masthead .word{position:absolute;left:440px;top:44px;transform:translateX(-50%);
@@ -572,9 +543,7 @@ function buildHTML(cfg, opts){
 </style></head>
 <body><div class="poster"><div class="canvas">
 ${bgSVG}
-<div class="vignette"></div>
 ${stage}
-<div class="grain"></div>
 </div></div></body></html>`;
 }
 
@@ -582,13 +551,13 @@ ${stage}
    界面
    ============================================================ */
 const $ = id => document.getElementById(id);
-const KEY = 'poster-workbench-v1';
+const KEY = 'poster-workbench-v2';
 
 /** 数值显示：去掉多余小数尾巴（1.30 → 1.3，52.0 → 52） */
 const fmtV = v => String(Math.round(Number(v) * 1000) / 1000);
 
 // 面板里的滑杆由 SLIDERS 生成，加参数不用再手写 HTML
-['type','bg','grade'].forEach(g => {
+['type'].forEach(g => {
   const box = $('sld-' + g);
   if (!box) return;
   box.innerHTML = SLIDERS.filter(p => p.grp === g).map(p => `
@@ -649,9 +618,14 @@ function syncUI(){
   // 歌词居中版式不排英文，把输入框禁掉，避免改了没反应
   const noEN = state.layout === 'lyric';
   $('en').disabled = noEN;
-  $('enLabel').textContent = noEN ? '英文文案（此版式不排英文）' : '英文文案（可留空）';
+  $('enLabel').textContent = noEN ? '英文（此版式不排英文）' : '英文（可留空）';
   $('mast').value = state.mast;
   $('foot').value = state.foot;
+  $('credit').value = state.credit || '';
+  // 歌词署名只有「歌词居中」用得上；该版式不排刊头/落款，反过来也一样
+  $('credit').disabled = !noEN;
+  $('mast').disabled = noEN;
+  $('foot').disabled = noEN;
   $('fontCN').value = state.fontCN || '';
   $('fontEN').value = state.fontEN || '';
   $('ink').value = state.ink;
@@ -782,7 +756,7 @@ $('scanFonts').addEventListener('click', loadFonts);
   $(id).addEventListener('input', () => { state[key] = $(id).value.trim(); paint(); });
 });
 
-[['cn','cn'],['en','en'],['mast','mast'],['foot','foot']].forEach(([id, key]) => {
+[['cn','cn'],['en','en'],['mast','mast'],['foot','foot'],['credit','credit']].forEach(([id, key]) => {
   $(id).addEventListener('input', e => {
     state[key] = e.target.value;
     // 文案改动只重绘，不回写输入框，避免光标跳动

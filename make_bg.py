@@ -19,17 +19,18 @@ W, H = 878, 1569          # 画布内部尺寸，与工作台一致
 # cx/cy: 取景焦点（0~1，画面内相对位置）；zoom: 1.0 = 刚好铺满，>1 放大
 # blur: (横向, 纵向) 拉丝强度；拉丝方向跟画面主要线条平行
 # presat: 进模糊前的饱和度，防止糊成一团脏色
+# out: 输出文件名（中文），落在 out/bg/<out>@2x.png
 PLANS = [
-    dict(key="van-gogh-starry-night", out="bg-starry",
+    dict(key="van-gogh-starry-night", out="星夜",
          name="梵高《星夜》", zoom=1.05, cx=0.66, cy=0.28,
          angle=0, blur=(24, 3), presat=1.15, sat=1.08, con=1.14, bri=0.96),
-    dict(key="monet-impression-sunrise", out="bg-sunrise",
+    dict(key="monet-impression-sunrise", out="日出",
          name="莫奈《日出·印象》", zoom=1.00, cx=0.40, cy=0.50,
          angle=0, blur=(22, 3), presat=1.24, sat=1.22, con=1.36, bri=0.84),
-    dict(key="monet-water-lily-pond", out="bg-lily",
+    dict(key="monet-water-lily-pond", out="睡莲",
          name="莫奈《睡莲池》", zoom=1.00, cx=0.50, cy=0.46,
          angle=0, blur=(26, 3), presat=1.10, sat=1.06, con=1.14, bri=0.95),
-    dict(key="wang-ximeng-thousand-li", out="bg-qianli",
+    dict(key="wang-ximeng-thousand-li", out="千里江山",
          name="王希孟《千里江山图》", zoom=1.25, cx=0.50, cy=0.50,
          angle=0, blur=(20, 2.5), presat=0.96, sat=1.02, con=1.22, bri=0.87),
 ]
